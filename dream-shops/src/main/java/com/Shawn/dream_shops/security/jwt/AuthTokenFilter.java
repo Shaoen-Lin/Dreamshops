@@ -2,6 +2,7 @@ package com.Shawn.dream_shops.security.jwt;
 
 
 import com.Shawn.dream_shops.security.service.ShopUserDetailsService;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,7 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import com.Shawn.dream_shops.security.user.ShopUserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -25,6 +27,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private ShopUserDetailsService userDetailsService;
 
+    @Autowired
+    private JwtAuthEntryPoint authEntryPoint;
+
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
@@ -32,21 +37,23 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         try {
             String jwt = parseJwt(request);
-            if(StringUtils.hasText(jwt) && jwtUtils.validateToken(jwt))
+            if (StringUtils.hasText(jwt))
             {
-                String username = jwtUtils.getUsernameFromToken(jwt);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                Claims claims = jwtUtils.parseClaims(jwt);
+                if (claims.getExpiration() == null || !StringUtils.hasText(claims.getSubject())
+                        || !(claims.get("id") instanceof Number id)) {
+                    throw new JwtException("The token does not identify an account");
+                }
+                ShopUserDetails userDetails = userDetailsService.loadUserByUsername(claims.getSubject());
+                if (!userDetails.getId().equals(id.longValue())) {
+                    throw new JwtException("The token does not belong to the current account");
+                }
                 Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
-        } catch (JwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write(e.getMessage() + " : Invalid or expired token, you may log in and try again");
-            return;
-        } catch (Exception e)
-        {
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write(e.getMessage());
+        } catch (JwtException | UsernameNotFoundException e) {
+            SecurityContextHolder.clearContext();
+            authEntryPoint.commence(request, response, null);
             return;
         }
         filterChain.doFilter(request, response);

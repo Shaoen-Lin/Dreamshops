@@ -1,0 +1,33 @@
+map $uri $cache_control {
+    default "";
+    /index.html "no-cache";
+    ~^/assets/ "public, max-age=31536000, immutable";
+}
+
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    add_header Content-Security-Policy "script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Cache-Control $cache_control;
+
+    location /api/ {
+        client_max_body_size 5m;
+        add_header Cache-Control $cache_control;
+        proxy_pass ${API_UPSTREAM};
+        proxy_set_header Host $proxy_host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_ssl_server_name on;
+        proxy_ssl_verify on;
+        proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+    }
+
+    location /assets/ {
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

@@ -3,11 +3,14 @@ package com.Shawn.dream_shops.security.config;
 import com.Shawn.dream_shops.security.jwt.AuthTokenFilter;
 import com.Shawn.dream_shops.security.jwt.JwtAuthEntryPoint;
 import com.Shawn.dream_shops.security.service.ShopUserDetailsService;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -21,7 +24,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.util.List;
 
 @RequiredArgsConstructor
 @EnableWebSecurity
@@ -34,9 +36,8 @@ public class ShopConfig {
     @Autowired
     private final JwtAuthEntryPoint authEntryPoint;
 
-    private static final List<String> SECURED_URLS
-            = List.of("/api/v1/carts/**", "/api/v1/cartItems/**");
-    // 這兩個 URL 被要求 必須驗證（authenticated）。
+    @Value("${api.prefix}")
+    private String apiPrefix;
 
     @Bean
     public ModelMapper modelMapper(){
@@ -75,7 +76,16 @@ public class ShopConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                 .authorizeHttpRequests(auth -> auth.requestMatchers(SECURED_URLS.toArray(String[]::new)).authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.POST, apiPrefix + "/users/add").permitAll()
+                        .requestMatchers(HttpMethod.POST, apiPrefix + "/categories/**",
+                                apiPrefix + "/images/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, apiPrefix + "/categories/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, apiPrefix + "/categories/**",
+                                apiPrefix + "/images/**").hasRole("ADMIN")
+                        .requestMatchers(apiPrefix + "/carts/**", apiPrefix + "/cartItems/**",
+                                apiPrefix + "/orders/**", apiPrefix + "/users/**").authenticated()
                         .anyRequest().permitAll());
 
         // 不允許 csrf 跨站存取

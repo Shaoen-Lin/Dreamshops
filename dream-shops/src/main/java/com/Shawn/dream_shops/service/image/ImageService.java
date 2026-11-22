@@ -11,6 +11,7 @@ import com.Shawn.dream_shops.service.product.ProductService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,9 @@ public class ImageService implements IImageService{
     @Autowired
     ProductRepository prodRepo;
 
+    @Value("${api.prefix}")
+    private String apiPrefix;
+
     @Override
     public Image getImageById(Long id) {
         return imageRepo.findById(id).orElseThrow(() -> new ResourceNotFoundException("No image found with id: " + id));
@@ -44,6 +48,7 @@ public class ImageService implements IImageService{
     }
 
     @Override
+    @Transactional
     public List<ImageDto> saveImages(List<MultipartFile> files, Long productID) {
 
         Product product = prodRepo
@@ -61,18 +66,8 @@ public class ImageService implements IImageService{
                 image.setImage(new SerialBlob(file.getBytes())); // TypeCasting to Blob
                 image.setProduct(product);
 
-                String buildDownloadUrl = "/api/v1/images/image/download/";
-                // 以下這段其實很雞肋，因為不會拿到一個正確的值，主要因為 ID 為 GenerationType.IDENTITY 交給 資料庫自動產生
-                // 所以在存進資料庫前，ID 應該都是 null
-                String downloadUrl = buildDownloadUrl + image.getId();
-                image.setDownloadUrl(downloadUrl);
-
-                // 以上先給 暫存的 Image 吃掉
-                // 下面要正式給 savedImage 吃掉 並 call Repository 存進 DB
-
                 Image savedImage = imageRepo.save(image);
-                savedImage.setDownloadUrl(buildDownloadUrl + savedImage.getId());
-                imageRepo.save(savedImage);
+                savedImage.setDownloadUrl(apiPrefix + "/images/image/download/" + savedImage.getId());
 
                 // 建構對應的 DTO 回傳
                 ImageDto imageDto = new ImageDto();

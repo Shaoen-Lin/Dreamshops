@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.pgdump
+*.sql.gz

@@ -3,7 +3,7 @@ package com.Shawn.dream_shops.service.cart;
 import com.Shawn.dream_shops.model.CartItem;
 
 public interface ICartItemService {
-    void addCartItem(Long cartID, Long productId, int quantity);
+    Long addCartItem(Long userId, Long productId, int quantity);
     void removeItemFromCart(Long cartId, Long productId);
     void updateItemQuantity(Long cartId, Long productId, int quantity);
 

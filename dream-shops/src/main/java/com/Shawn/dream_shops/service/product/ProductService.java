@@ -178,7 +178,13 @@ public class ProductService implements IProductService{
         ProductDto productDto = modelMapper.map(product, ProductDto.class);
         List<Image> images = imageRepo.findByProductId(product.getId());
         List<ImageDto> imageDtos = images.stream()
-                .map(image -> modelMapper.map(image, ImageDto.class))
+                .map(image -> {
+                    ImageDto dto = new ImageDto();
+                    dto.setImageID(image.getId());
+                    dto.setImageName(image.getFileName());
+                    dto.setDownloadURL(image.getDownloadUrl());
+                    return dto;
+                })
                 .toList();
         productDto.setImages(imageDtos);
         return productDto;

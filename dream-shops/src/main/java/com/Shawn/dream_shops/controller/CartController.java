@@ -7,6 +7,7 @@ import com.Shawn.dream_shops.service.cart.ICartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ public class CartController {
     private final ICartService cartService;
 
     @GetMapping("/{cartId}/my-cart")
+    @PreAuthorize("@cartRepository.existsByIdAndUserId(#cartId, principal.id)")
     public ResponseEntity<ApiResponse> getCart(@PathVariable Long cartId)
     {
         try{
@@ -35,6 +37,7 @@ public class CartController {
     }
 
     @DeleteMapping("/{cartId}/clear")
+    @PreAuthorize("@cartRepository.existsByIdAndUserId(#cartId, principal.id)")
     public ResponseEntity<ApiResponse> clearCart(@PathVariable Long cartId)
     {
         try {
@@ -46,6 +49,7 @@ public class CartController {
     }
 
     @GetMapping("/{cartId}/cart/total-price")
+    @PreAuthorize("@cartRepository.existsByIdAndUserId(#cartId, principal.id)")
     public ResponseEntity<ApiResponse> getTotalAmount(@PathVariable Long cartId)
     {
         try {

@@ -2,12 +2,22 @@ package com.Shawn.dream_shops.repository;
 
 import com.Shawn.dream_shops.model.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    @Modifying
+    @Query("""
+            update Product p set p.inventory = p.inventory - :quantity
+            where p.id = :id and p.inventory >= :quantity
+            """)
+    int decrementAvailableInventory(@Param("id") Long id, @Param("quantity") int quantity);
 
     boolean existsByName(String name);
 

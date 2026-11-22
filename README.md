@@ -1,8 +1,10 @@
 # DreamShops API (Enterprise E-Commerce Backend)
 
+React storefront · [本機啟動與驗證](frontend/README.md) · [REST API 合約](frontend/API.md)
+
 ![Java](https://img.shields.io/badge/Java-21-orange) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-green) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue) 
 
-A production-ready RESTful e-commerce backend built with **Spring Boot 3**, featuring JWT-based authentication, role-based access control, and a full shopping workflow from product browsing to order placement.
+A RESTful e-commerce backend built with **Spring Boot 3**, featuring JWT-based authentication, role-based access control, and a full shopping workflow from product browsing to order placement.
 
 > This project was developed based on [dailycodework/dream-shops](https://github.com/dailycodework/dream-shops) as a learning foundation. I identified and resolved multiple bugs in the original codebase, and extended the implementation with additional fixes and improvements.
 
@@ -12,7 +14,7 @@ A production-ready RESTful e-commerce backend built with **Spring Boot 3**, feat
 
 | Layer | Technology |
 |---|---|
-| Language | Java 17 |
+| Language | Java 21 |
 | Framework | Spring Boot 3.3.2 |
 | Security | Spring Security + JWT (jjwt) |
 | Persistence | Spring Data JPA + Hibernate |
@@ -174,34 +176,19 @@ src/main/java/com/Shawn/dream_shops/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Java 17+
-- MySQL 8+
-- Maven 3.8+
+
+- Java 21
+- PostgreSQL
+- Maven Wrapper
 
 ### Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Shaoen-Lin/dreamshops-api.git
-   cd dreamshops-api
-   ```
+Follow the [local setup guide](frontend/README.md#本機執行) for PostgreSQL, the required server-side JWT key, and optional administrator bootstrap. From the repository root, start the backend with the following commands.
 
-2. **Configure the database** — edit `src/main/resources/application.properties`:
-   ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/dreamshops
-   spring.datasource.username=YOUR_DB_USER
-   spring.datasource.password=YOUR_DB_PASSWORD
-
-   api.prefix=/api/v1
-
-   auth.token.jwtSecret=YOUR_BASE64_ENCODED_SECRET
-   auth.token.expirationInMils=3600000
-   ```
-
-3. **Build and run**
-   ```bash
-   ./mvnw spring-boot:run
-   ```
+```bash
+cd dream-shops
+sh mvnw spring-boot:run
+```
 
 The API will be available at `http://localhost:8080/api/v1`.
 
@@ -232,10 +219,10 @@ The API will be available at `http://localhost:8080/api/v1`.
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | `/api/v1/categories/all` | Get all categories | Public |
-| POST | `/api/v1/categories/add` | Add category | Public |
+| POST | `/api/v1/categories/add` | Add category | Admin |
 | GET | `/api/v1/categories/category/{id}/category` | Get by ID | Public |
-| PUT | `/api/v1/categories/category/{id}/update` | Update category | Public |
-| DELETE | `/api/v1/categories/category/{id}/delete` | Delete category | Public |
+| PUT | `/api/v1/categories/category/{id}/update` | Update category | Admin |
+| DELETE | `/api/v1/categories/category/{id}/delete` | Delete category | Admin |
 
 ### Cart
 | Method | Endpoint | Description | Auth |
@@ -257,10 +244,10 @@ The API will be available at `http://localhost:8080/api/v1`.
 ### Images
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/v1/images/upload` | Upload images | User |
+| POST | `/api/v1/images/upload` | Upload images | Admin |
 | GET | `/api/v1/images/image/download/{imageID}` | Download image | Public |
-| POST | `/api/v1/images/image/{imageID}/update` | Update image | User |
-| DELETE | `/api/v1/images/image/{imageID}/update` | Delete image | User |
+| POST | `/api/v1/images/image/{imageID}/update` | Update image | Admin |
+| DELETE | `/api/v1/images/image/{imageID}/update` | Delete image | Admin |
 
 ### Users
 | Method | Endpoint | Description | Auth |
@@ -306,4 +293,4 @@ Client                             Server
 
 **Lazy cart initialization** — a user's cart is only created when they first add an item, reducing unnecessary DB rows for users who browse without purchasing.
 
-**`@Transactional` on Blob streaming** — MySQL's JDBC `Blob` object requires an active database connection to stream bytes. Without `@Transactional`, the connection is closed before the bytes are read, resulting in a runtime error.
+**`@Transactional` on Blob streaming** — PostgreSQL's JDBC `Blob` object requires an active database connection to stream bytes. Without `@Transactional`, the connection is closed before the bytes are read, resulting in a runtime error.

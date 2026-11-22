@@ -22,6 +22,7 @@ public class Image {
     private String fileName; // cat.jpg
     private String fileType; // .jpeg or .png
 
+    @JsonIgnore
     @Lob
     private Blob image;
     // Blob (Binary Large Object) 表示大型二進制資料的資料類型。 它通常用來儲存圖片、音訊、影片等非結構化資料

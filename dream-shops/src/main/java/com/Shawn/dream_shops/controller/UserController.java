@@ -11,6 +11,7 @@ import com.Shawn.dream_shops.service.user.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -25,6 +26,7 @@ public class UserController {
     private final IUserService userService;
 
     @GetMapping("/{id}/user")
+    @PreAuthorize("principal.id == #id")
     public ResponseEntity<ApiResponse> getUserById(@PathVariable Long id)
     {
         try {
@@ -49,6 +51,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/update")
+    @PreAuthorize("principal.id == #userId")
     public ResponseEntity<ApiResponse> updateUser(@RequestBody UserUpdateRequest request, @PathVariable Long userId)
     {
         try {
@@ -61,6 +64,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}/delete")
+    @PreAuthorize("principal.id == #userId")
     public ResponseEntity<ApiResponse> deleteUser(@PathVariable Long userId)
     {
         try {

@@ -26,6 +26,7 @@ public class User {
     private String lastName;
     @NaturalId // 除了主鍵 (@Id) 之外，可以唯一識別一筆資料的欄位。
     private String email;
+    @JsonIgnore
     private String password;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

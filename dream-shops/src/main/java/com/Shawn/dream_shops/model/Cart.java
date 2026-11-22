@@ -43,6 +43,11 @@ public class Cart {
         updateTotalAmount();
     }
 
+    public void clearItems() {
+        items.clear();
+        totalAmount = BigDecimal.ZERO;
+    }
+
     public BigDecimal updateTotalAmount()
     {
         this.totalAmount = items.stream()
