@@ -1,0 +1,39 @@
+
+name: Dreamshop CD
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify-gcp:
+    name: Verify GCP Authentication
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/1084819410692/locations/global/workloadIdentityPools/github-actions-pool/providers/github-provider
+          service_account: dreamshop-deployer@pinbot-devops.iam.gserviceaccount.com
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Verify Cloud Run access
+        run: |
+          gcloud run services describe dreamshops-backend \
+            --project=pinbot-devops \
+            --region=asia-east1 \
+            --format="value(metadata.name)"
+
+          gcloud run services describe dreamshops-frontend \
+            --project=pinbot-devops \
+            --region=asia-east1 \
+            --format="value(metadata.name)"
