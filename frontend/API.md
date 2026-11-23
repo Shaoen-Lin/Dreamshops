@@ -1,4 +1,4 @@
-# DreamShops REST API 合約
+# Dreamshop REST API 合約
 
 本文件以本機 Java 原始碼為準，涵蓋八個 Controller。後端是 Java 21、Spring Boot 3.5.16、Spring MVC、Spring Security、Spring Data JPA/Hibernate、PostgreSQL、ModelMapper、JJWT 與 Springdoc。Controller 負責 HTTP 契約，Service 負責購物流程與 DTO 轉換，Repository 使用 Spring Data JPA，Entity 定義資料庫與關聯。
 

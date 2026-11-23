@@ -41,7 +41,7 @@ export function LoginPage() {
 
   return <div className="shell view auth-view">
     <section className="panel auth-panel" aria-labelledby="login-title">
-      <header><h1 id="login-title">登入 DreamShops</h1><p>登入以管理購物車與訂單。</p></header>
+      <header><h1 id="login-title">登入 Dreamshop</h1><p>登入以管理購物車與訂單。</p></header>
       {location.state?.registered && <p className="notice success" role="status">帳戶已建立，請登入。</p>}
       {location.state?.protected && <p className="notice" role="status">請先登入，再繼續操作。</p>}
       <form className="stack-form" onSubmit={submit}>

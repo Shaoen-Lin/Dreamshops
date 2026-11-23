@@ -43,7 +43,7 @@ function browser(path: string) {
   return render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>)
 }
 
-describe('DreamShops', () => {
+describe('Dreamshop', () => {
   it('returns to a protected route after real-client login and reads an empty cart', async () => {
     fetchMock.mockImplementation(async (url, request) => {
       if (url.endsWith('/auth/login')) {
@@ -124,7 +124,7 @@ describe('DreamShops', () => {
     setSession(session)
     fetchMock.mockResolvedValue(new Response('expired', { status: 401 }))
     browser('/account')
-    expect(await screen.findByRole('heading', { name: '登入 DreamShops' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: '登入 Dreamshop' })).toBeVisible()
     expect(sessionStorage.getItem('dreamshops.session')).toBeNull()
   })
 

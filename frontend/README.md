@@ -1,4 +1,4 @@
-# DreamShops 商店前端
+# Dreamshop 商店前端
 
 繁體中文的響應式 React 商店，使用 TypeScript、Vite、Tailwind CSS、React Router 與 Fetch。首頁、商品、購物車、帳戶與訂單使用同一套 Spring Boot API。
 
@@ -22,7 +22,7 @@ unset POSTGRES_PASSWORD
 ```sh
 export AUTH_TOKEN_JWTSECRET="$(openssl rand -base64 32)"
 cd dream-shops
-sh mvnw spring-boot:run
+./mvnw spring-boot:run
 ```
 
 Spring Boot 預設提供 `http://127.0.0.1:8080/api/v1`。Hibernate 建立缺少的資料表。後端必須取得至少 32 bytes 的 Base64 JWT 金鑰，每次換金鑰會使先前的登入失效。新資料庫預設為空，顧客帳戶在商店頁面註冊。
@@ -127,16 +127,14 @@ docker run --rm -p 127.0.0.1:4180:8080 \
 - 會員 API 可更新姓氏與名字。電子郵件修改、忘記密碼、刷新 token 和伺服器端登出尚無 API。訂單和商品金額由後端提供，後端尚無幣別欄位。
 - 商店介面以顧客操作為主。商品管理仍使用既有的管理員 API，分類與圖片寫入同樣需要管理員。
 
-## GitHub 與 GCP 後續
+## 部署狀態與後續
 
-1. 為 PR 加入 GitHub Actions，前端執行 `npm ci`、型別檢查、lint、測試與建置，後端測試連到一次性的 PostgreSQL。可將容器建置與本機 smoke test 加入 CI。 [GitHub Actions Node.js 指南](https://docs.github.com/en/actions/tutorials/build-and-test-code/nodejs)
-2. 上公開環境前，停用舊資料庫的預設測試帳戶，輪換曾在 Git 歷史出現的有效密碼與 JWT 金鑰，評估結帳冪等與登入限流。以 Secret Manager 管理後端機密，使用資料庫遷移工具管理 schema。Spring Boot 3.5 已結束開源維護，需規劃遷移至受支援版本或取得商業支援。 [Spring Boot 支援說明](https://spring.io/blog/2026/06/25/spring-boot-3-5-16-available-now/)
-3. 將前端和後端映像推至 Artifact Registry，規劃獨立的 Cloud Run 服務以及 Cloud SQL for PostgreSQL。前端容器以 8080 提供服務，建置需包含 `linux/amd64`。若後端設為私有 Cloud Run 服務，前端代理需另傳 Google ID token 給 Cloud Run，並保留應用程式的 Bearer JWT。現有 Nginx 模板只代理應用程式請求。 [Cloud Run 容器契約](https://docs.cloud.google.com/run/docs/container-contract) · [Cloud Run 服務間驗證](https://docs.cloud.google.com/run/docs/authenticating/service-to-service) · [Cloud SQL 連線指南](https://docs.cloud.google.com/sql/docs/postgres/connect-run)
-4. 建立預備環境，驗證註冊、登入與結帳後，再規劃 GitHub Actions 的 Workload Identity Federation、版本回滾、錯誤率與延遲告警、資料庫備份。
+前端與後端已部署至 Cloud Run。Cloud SQL 目前暫停，依賴資料庫的線上功能會等到資料庫重新啟動後才可使用。參閱 [專案部署說明](../README.md#deployment)。
 
+GitHub Actions 尚在規劃，預計先用一次性 PostgreSQL 驗證後端，並執行前端的安裝、型別檢查、lint、測試與建置。 [GitHub Actions Node.js 指南](https://docs.github.com/en/actions/tutorials/build-and-test-code/nodejs)
 
 ## 首頁圖像
 
 [shop-hero.jpg](public/shop-hero.jpg) 使用內建 ImageGen 生成。商品卡與詳情使用後端圖片。
 
-> Create a wide 3:2 photorealistic ecommerce hero background for a premium electronics store called DreamShops, no lettering or graphic design. Close-up sculptural graphite and brushed champagne metal over-ear wireless headphones standing on their soft ear cushions on a textured deep blue-purple studio platform. Place headphones mostly in right half of frame, sweeping organic headband dominates right half, with a few soft lavender highlights and a deep charcoal navy gradient. Left 40% is dark matte navy negative space to place white text independently. Dramatic editorial studio light. Camera is at eye level with product, tasteful subtle grain, high-end material realism. No logo, no captions, no humans, no packaging. Keep the product inside frame.
+> Create a wide 3:2 photorealistic ecommerce hero background for a premium electronics store called [Dreamshop], no lettering or graphic design. Close-up sculptural graphite and brushed champagne metal over-ear wireless headphones standing on their soft ear cushions on a textured deep blue-purple studio platform. Place headphones mostly in right half of frame, sweeping organic headband dominates right half, with a few soft lavender highlights and a deep charcoal navy gradient. Left 40% is dark matte navy negative space to place white text independently. Dramatic editorial studio light. Camera is at eye level with product, tasteful subtle grain, high-end material realism. No logo, no captions, no humans, no packaging. Keep the product inside frame.

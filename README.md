@@ -1,296 +1,158 @@
-# DreamShops API (Enterprise E-Commerce Backend)
+# Dreamshop
 
-React storefront · [本機啟動與驗證](frontend/README.md) · [REST API 合約](frontend/API.md)
+**Full-Stack E-Commerce Application**
 
-![Java](https://img.shields.io/badge/Java-21-orange) ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.5-green) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue) 
+## Project Overview
 
-A RESTful e-commerce backend built with **Spring Boot 3**, featuring JWT-based authentication, role-based access control, and a full shopping workflow from product browsing to order placement.
+Dreamshop is a full-stack e-commerce application built with React, Spring Boot, and PostgreSQL. It pairs a customer storefront with a transactional backend and deploys the two applications as separate containers on Google Cloud Run.
 
-> This project was developed based on [dailycodework/dream-shops](https://github.com/dailycodework/dream-shops) as a learning foundation. I identified and resolved multiple bugs in the original codebase, and extended the implementation with additional fixes and improvements.
+## Features
 
----
+- Account registration and login with JWT authentication.
+- Product browsing, detail pages, category filters, keyword search, and price sorting. Search and sorting run on the catalog data loaded by the storefront.
+- Shopping carts with quantity updates, item removal, and totals calculated by the backend.
+- Checkout that creates a pending order, decrements stock, and clears the cart in one transaction. Customers can view their order history and order details.
+- Inventory checks during checkout to prevent overselling. Catalog, category, and image writes are available through administrator APIs, and customer data is scoped to its owner.
 
-## 🔧 Tech Stack
+## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Language | Java 21 |
-| Framework | Spring Boot 3.3.2 |
-| Security | Spring Security + JWT (jjwt) |
-| Persistence | Spring Data JPA + Hibernate |
-| Database | Postgre |
-| Mapping | ModelMapper |
-| Build Tool | Maven |
-| Utilities | Lombok |
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React, TypeScript, Vite, React Router, Tailwind CSS, Nginx |
+| Backend | Java 21, Spring Boot 3.5.16, Spring Security, Spring Data JPA, Hibernate, Maven |
+| Database | PostgreSQL |
+| Containers and cloud | Docker, Cloud Run, Cloud SQL, Artifact Registry, Secret Manager, IAM |
+| Testing | JUnit 5, Spring Boot Test, MockMvc, Vitest, React Testing Library |
 
----
+## Architecture
 
-## ✨ Features
+```mermaid
+flowchart LR
+    Browser["Browser · React storefront"]
 
-### 🔐 Authentication & Authorization
-- User registration and login via `POST /api/v1/auth/login`
-- JWT token generation with embedded user ID and roles (`ROLE_ADMIN`, `ROLE_USER`)
-- Stateless authentication via `AuthTokenFilter` — validates Bearer tokens on every request
-- `JwtAuthEntryPoint` returns structured JSON `401 Unauthorized` responses for unauthenticated access
-- Method-level security using `@PreAuthorize("hasRole('ROLE_ADMIN')")` on sensitive operations (add / update / delete products)
+    subgraph Frontend["Cloud Run · frontend"]
+        Nginx["Nginx · serves the React build and proxies API requests"]
+    end
 
-### 📦 Product Management
-- Full CRUD operations for products
-- Rich query support: filter by name, brand, category, brand + name, category + brand
-- DTO projection via ModelMapper — `ProductDto` includes nested `ImageDto` list
-- Duplicate product guard: throws `AlreadyExistsException` if the same brand + name combination already exists
-- Admin-only write operations enforced at the service layer
+    subgraph Backend["Cloud Run · backend"]
+        API["Spring Boot REST API"]
+        JPA["Spring Data JPA / Hibernate"]
+        Connector["Cloud SQL Java Connector"]
+        API --> JPA --> Connector
+    end
 
-### 🗂️ Category Management
-- Create, read, update, and delete product categories
-- Conflict detection for duplicate category names
-- Auto-create category during product creation if it does not exist
-
-### 🛒 Cart & Cart Item Management
-- Cart is lazily initialized per user — created on first item addition
-- Add, remove, and update item quantities in cart
-- Total price recalculated on every update using stream aggregation to avoid stale state
-- JWT-aware cart operations: `CartItemController` resolves the authenticated user via `SecurityContextHolder` before cart lookup
-- `@Transactional` on cart mutation operations to ensure data consistency
-
-### 📋 Order Management
-- Place orders from an existing cart
-- Retrieve single order by ID or all orders by user ID
-- Orders returned as `OrderDto` for clean API responses
-
-### 🖼️ Image Management
-- Upload multiple product images as `MultipartFile` (stored as SQL `Blob`)
-- Download images by ID with correct MIME type headers (`Content-Disposition`, `Content-Type`)
-- Update and delete images by ID
-- `@Transactional` on download endpoint to correctly handle `Blob` streaming
-
-### 👤 User Management
-- Create, read, update, and delete users
-- Passwords encoded with `BCryptPasswordEncoder`
-- User responses projected as `UserDto` to avoid exposing sensitive fields
-
----
-
-## 🐛 Bugs Fixed
-
-The original codebase contained several issues that I identified and resolved:
-
-### 1. Cart Total Amount Stale State Bug
-**Location:** `CartItemService.updateItemQuantity()`
-
-The original code called `cart.getTotalAmount()` after mutating item quantities, which returned the **pre-update cached value** instead of the recalculated total.
-
-```java
-// Before — returns stale total
-BigDecimal totalAmount = cart.getTotalAmount();
-
-// After — recalculates from current items
-BigDecimal totalAmount = cart.getItems().stream()
-    .map(CartItem::getTotalPrice)
-    .reduce(BigDecimal.ZERO, BigDecimal::add);
+    Browser -->|HTTPS| Nginx
+    Nginx -->|"/api/v1 over HTTPS"| API
+    Connector -->|Encrypted JDBC connection| Database["Cloud SQL · PostgreSQL"]
+    Secrets["Secret Manager"] -.->|Runtime secret references| API
+    Identity["Backend IAM service account"] -.->|Cloud SQL access| Connector
+    Identity -.->|Secret access| Secrets
 ```
 
-### 2. Cart Clear — Orphan CartItems Not Deleted
-**Location:** `CartService.clearCart()`
+The browser uses a same-origin API for both local development and the deployed storefront. Vite forwards API requests during development. Nginx handles the same routing in the frontend container.
 
-The original implementation called `CartItemRepo.deleteAllByCartId(id)` directly, which bypassed JPA's relationship management and left orphaned records or caused constraint violations.
+## Project Structure
 
-```java
-// Before — bypasses JPA cascade
-CartItemRepo.deleteAllByCartId(id);
+| Path | Contents |
+| --- | --- |
+| [`dream-shops/src/main/java/com/Shawn/dream_shops/`](dream-shops/src/main/java/com/Shawn/dream_shops/) | REST controllers, services, security, JPA entities, and repositories |
+| [`dream-shops/src/main/resources/`](dream-shops/src/main/resources/) | Spring Boot configuration |
+| [`dream-shops/src/test/java/com/Shawn/dream_shops/`](dream-shops/src/test/java/com/Shawn/dream_shops/) | Spring context and backend integration tests |
+| [`frontend/src/`](frontend/src/) | Storefront routes, components, API client, and `app.test.tsx` |
+| [Backend Dockerfile](dream-shops/Dockerfile), [Frontend Dockerfile](frontend/Dockerfile), [Nginx template](frontend/nginx.conf.template) | Container builds and runtime proxy configuration |
 
-// After — clears via managed collection, triggers orphanRemoval
-cart.getItems().clear();
-cart.setTotalAmount(BigDecimal.ZERO);
-CartRepo.save(cart);
-```
+## Getting Started
 
-### 3. Image Download — Null Blob Not Guarded
-**Location:** `ImageController.downloadImages()`
+Use Java 21, Node.js 22.13+ (22.x), npm, and OpenSSL. The backend includes the Maven Wrapper. The PostgreSQL example uses Docker, or you can connect to an existing local PostgreSQL server.
 
-The original code attempted to read `image.getImage().getBytes(...)` without checking if the `Blob` field was `null`, causing a `NullPointerException` at runtime for images with missing data.
+### Environment Variables
 
-```java
-// Added null guard before Blob access
-if (image.getImage() == null) {
-    throw new ResourceNotFoundException("Image data is empty for id=" + imageID);
-}
-```
+| Variable | Purpose |
+| --- | --- |
+| `SPRING_DATASOURCE_URL` | Backend JDBC URL. The local default is `jdbc:postgresql://localhost:5432/dream_shops_db`. |
+| `SPRING_DATASOURCE_USERNAME` | PostgreSQL user. The local default is `postgres`. |
+| `SPRING_DATASOURCE_PASSWORD` | Password for the selected PostgreSQL user. |
+| `AUTH_TOKEN_JWTSECRET` | Backend signing key. Supply Base64-encoded random data of at least 32 bytes. |
+| `SHOP_BOOTSTRAP_ADMIN_EMAIL`, `SHOP_BOOTSTRAP_ADMIN_PASSWORD` | Optional pair for creating a local administrator at startup. |
+| `VITE_API_BASE_URL` | Public frontend API path. Defaults to `/api/v1`. |
+| `API_PROXY_TARGET` | Vite's development and preview proxy target. Defaults to `http://127.0.0.1:8080`. |
+| `API_UPSTREAM` | Backend origin for the Nginx container. Defaults to `http://backend:8080` on a shared Docker network. |
 
-### 4. JWT Validation — Specific Exceptions Swallowed
-**Location:** `JwtUtils.validateToken()` and `AuthTokenFilter`
+### PostgreSQL
 
-The original catch block silently swallowed specific JWT exceptions (`ExpiredJwtException`, `MalformedJwtException`, `SignatureException`, etc.) without re-throwing, causing the filter chain to proceed as if authentication succeeded.
-
-```java
-// After — catches all JWT-specific exceptions and re-throws as JwtException
-} catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException
-       | SignatureException | IllegalArgumentException e) {
-    throw new JwtException(e.getMessage());
-}
-```
-
-The `AuthTokenFilter` now catches `JwtException` separately and returns HTTP `401` with a descriptive message before the filter chain continues.
-
-### 5. Cart Initialization — Race Condition Safety
-**Location:** `CartService`
-
-Added `AtomicLong` for cart ID generation to prevent race conditions in concurrent cart creation scenarios, ensuring thread-safe ID allocation.
-
----
-
-## 🗂️ Project Structure
-
-```
-src/main/java/com/Shawn/dream_shops/
-├── controller/
-│   ├── AuthController.java
-│   ├── CartController.java
-│   ├── CartItemController.java
-│   ├── CategoryController.java
-│   ├── ImageController.java
-│   ├── OrderController.java
-│   ├── ProductController.java
-│   └── UserController.java
-├── service/
-│   ├── cart/         (CartService, CartItemService + interfaces)
-│   ├── product/      (ProductService + interface)
-│   ├── category/     (CategoryService + interface)
-│   ├── image/        (ImageService + interface)
-│   ├── order/        (OrderService + interface)
-│   └── user/         (UserService + interface)
-├── model/            (JPA Entities: User, Product, Category, Cart, CartItem, Order, Image)
-├── dto/              (ProductDto, ImageDto, OrderDto, UserDto)
-├── repository/       (Spring Data JPA Repositories)
-├── request/          (AddProductRequest, ProductUpdateRequest, LoginRequest, ...)
-├── reponse/          (ApiResponse, JwtResponse, CreateUserRequest, ...)
-├── exceptions/       (ResourceNotFoundException, AlreadyExistsException, ProductNotFoundException)
-└── security/
-    ├── jwt/          (JwtUtils, AuthTokenFilter, JwtAuthEntryPoint)
-    ├── user/         (ShopUserDetails)
-    └── service/      (ShopUserDetailsService)
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Java 21
-- PostgreSQL
-- Maven Wrapper
-
-### Setup
-
-Follow the [local setup guide](frontend/README.md#本機執行) for PostgreSQL, the required server-side JWT key, and optional administrator bootstrap. From the repository root, start the backend with the following commands.
+In a terminal at the repository root, start a disposable local database. For an existing local PostgreSQL server, create `dream_shops_db` and export the matching datasource settings instead.
 
 ```bash
+export SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/dream_shops_db
+export SPRING_DATASOURCE_USERNAME=postgres
+export SPRING_DATASOURCE_PASSWORD="$(openssl rand -hex 24)"
+
+POSTGRES_PASSWORD="$SPRING_DATASOURCE_PASSWORD" docker run -d --rm \
+  --name dreamshops-db \
+  -e POSTGRES_DB=dream_shops_db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD \
+  -p 127.0.0.1:5432:5432 postgres:16
+
+docker exec dreamshops-db pg_isready -h 127.0.0.1 -U postgres -d dream_shops_db
+```
+
+Repeat the last command until PostgreSQL accepts connections. Stopping this disposable container removes its local data.
+
+### Backend
+
+In the same terminal, with the datasource variables still set, run the backend. Hibernate creates or updates the schema on startup.
+
+```bash
+export AUTH_TOKEN_JWTSECRET="$(openssl rand -base64 32)"
 cd dream-shops
-sh mvnw spring-boot:run
+./mvnw spring-boot:run
 ```
 
-The API will be available at `http://localhost:8080/api/v1`.
+The API is available at `http://localhost:8080/api/v1`. Open [Swagger UI](http://localhost:8080/swagger-ui/index.html) to explore individual endpoints.
 
----
+### Frontend
 
-## 📡 API Endpoints
+In a second terminal at the repository root, start the storefront.
 
-### Auth
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/auth/login` | Login and receive JWT | Public |
-
-### Products
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/products/all` | Get all products | Public |
-| GET | `/api/v1/products/product/{id}/product` | Get product by ID | Public |
-| POST | `/api/v1/products/add` | Add product | Admin |
-| PUT | `/api/v1/products/product/{id}/update` | Update product | Admin |
-| DELETE | `/api/v1/products/product/{id}/delete` | Delete product | Admin |
-| GET | `/api/v1/products/products/by/brand-and-name` | Filter by brand & name | Public |
-| GET | `/api/v1/products/products/by/category-and-brand` | Filter by category & brand | Public |
-| GET | `/api/v1/products/product/{name}/products` | Filter by name | Public |
-| GET | `/api/v1/products/product/by-brand` | Filter by brand | Public |
-| GET | `/api/v1/products/product/{category}/all/products` | Filter by category | Public |
-
-### Categories
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/categories/all` | Get all categories | Public |
-| POST | `/api/v1/categories/add` | Add category | Admin |
-| GET | `/api/v1/categories/category/{id}/category` | Get by ID | Public |
-| PUT | `/api/v1/categories/category/{id}/update` | Update category | Admin |
-| DELETE | `/api/v1/categories/category/{id}/delete` | Delete category | Admin |
-
-### Cart
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/carts/{cartId}/my-cart` | Get cart | User |
-| DELETE | `/api/v1/carts/{cartId}/clear` | Clear cart | User |
-| GET | `/api/v1/carts/{cartId}/cart/total-price` | Get total price | User |
-| POST | `/api/v1/cartItems/item/add` | Add item to cart | User |
-| DELETE | `/api/v1/cartItems/cart/{cartId}/item/{productId}/remove` | Remove item | User |
-| PUT | `/api/v1/cartItems/cart/{cartId}/item/{productId}/update` | Update quantity | User |
-
-### Orders
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/orders/order` | Place order | User |
-| GET | `/api/v1/orders/{orderId}/order` | Get order by ID | User |
-| GET | `/api/v1/orders/{userId}/orders` | Get user orders | User |
-
-### Images
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/v1/images/upload` | Upload images | Admin |
-| GET | `/api/v1/images/image/download/{imageID}` | Download image | Public |
-| POST | `/api/v1/images/image/{imageID}/update` | Update image | Admin |
-| DELETE | `/api/v1/images/image/{imageID}/update` | Delete image | Admin |
-
-### Users
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/v1/users/{id}/user` | Get user by ID | User |
-| POST | `/api/v1/users/add` | Create user | Public |
-| PUT | `/api/v1/users/{userId}/update` | Update user | User |
-| DELETE | `/api/v1/users/{userId}/delete` | Delete user | User |
-
----
-
-## 🔑 Authentication Flow
-
-```
-Client                             Server
-  |                                  |
-  |  POST /auth/login                |
-  |  { email, password }  ─────────► |
-  |                                  | AuthenticationManager.authenticate()
-  |                                  | → BCrypt password verification
-  |                                  | → JwtUtils.generateTokenForUser()
-  |                                  |   (embeds userId + roles in JWT payload)
-  |  ◄── 200 { token, userId }       |
-  |                                  |
-  |  GET /products (Bearer <token>)  |
-  |  ──────────────────────────────► |
-  |                                  | AuthTokenFilter.doFilterInternal()
-  |                                  | → JwtUtils.validateToken()
-  |                                  | → Load UserDetails from DB
-  |                                  | → Set SecurityContextHolder
-  |  ◄── 200 { data }               |
+```bash
+cd frontend
+npm ci
+npm run dev
 ```
 
----
+Open [http://localhost:5173](http://localhost:5173). A new database starts with an empty catalog. The [frontend guide](frontend/README.md) explains how to bootstrap a local administrator and add a sample product.
 
-## 🧠 Design Decisions
+## Database Design
 
-**Interface-first service layer** — all services implement an interface (`IProductService`, `ICartService`, etc.), enabling loose coupling, easy mocking in tests, and adherence to the Dependency Inversion Principle.
+- A `User` can have multiple `Role` records through `user_roles`, one `Cart`, and multiple `Order` records.
+- Each `Product` belongs to a `Category` when assigned and can have multiple `Image` records. The product also stores its current price and inventory.
+- `CartItem` links a cart to a product. `OrderItem` links an order to a product and records its quantity and unit price at checkout.
 
-**DTO pattern** — entities are never directly exposed in API responses. ModelMapper converts them to DTOs, preventing circular serialization issues (e.g. `Product → Image → Product`) and avoiding unintended field exposure.
+Spring Data JPA repositories perform queries and updates. Hibernate maps the entities and relationships to PostgreSQL. Checkout uses a Spring-managed transaction, database locking, and a conditional inventory update to coordinate concurrent requests.
 
-**Stateless JWT security** — no server-side session state. Each request is independently authenticated via the `AuthTokenFilter`, making the API horizontally scalable.
+## API Overview
 
-**Lazy cart initialization** — a user's cart is only created when they first add an item, reducing unnecessary DB rows for users who browse without purchasing.
+All routes below use the `/api/v1` prefix. See the [full REST API contract](frontend/API.md) for payloads, access rules, and errors.
 
-**`@Transactional` on Blob streaming** — PostgreSQL's JDBC `Blob` object requires an active database connection to stream bytes. Without `@Transactional`, the connection is closed before the bytes are read, resulting in a runtime error.
+| Area | Method and path | Purpose |
+| --- | --- | --- |
+| Authentication | `POST /users/add` · `POST /auth/login` | Register a customer and obtain a JWT at login |
+| Products | `GET /products/all` · `GET /products/product/{id}/product` | List products and read product details |
+| Categories | `GET /categories/all` · `GET /products/product/{category}/all/products` | List categories and browse products in one category |
+| Shopping cart | `GET /carts/{cartId}/my-cart` · `POST /cartItems/item/add` | Read the customer's cart and add a product |
+| Checkout | `POST /orders/order?userId={userId}` | Place an order for the authenticated customer |
+| Orders | `GET /orders/{userId}/orders` · `GET /orders/{orderId}/order` | Read order history and order details |
+
+## Testing
+
+- **Backend — 7 JUnit cases.** One context-load test and six integration tests cover authorization, JWT invalidation after account deletion, concurrent cart and checkout requests, and inventory rollback. Set up a fresh disposable PostgreSQL database and the backend environment variables above. Run `./mvnw test` from `dream-shops/`. The tests write and delete test data.
+- **Frontend — 8 Vitest cases.** Tests use jsdom and mocked API responses to cover login, session expiry, catalog filtering, checkout, and error messages. Run `npm ci` and `npm test` from `frontend/`. The same directory supports `npm run typecheck`, `npm run lint`, and `npm run build`.
+
+## Deployment
+
+The two Docker images were published to the `dreamshops-images` Artifact Registry repository and deployed as `dreamshops-frontend` and `dreamshops-backend` in Cloud Run's `asia-east1` region. The backend uses the Cloud SQL Java Connector for PostgreSQL and a dedicated IAM service account for Cloud SQL and Secret Manager access. Cloud Run supplies the database password and JWT signing key to the backend through Secret Manager references.
+
+Registration, login, product browsing, cart updates, checkout, and order history were tested after deployment. **Cloud SQL is currently stopped. The live storefront's database-backed features are unavailable while it is stopped.**
+
+## Acknowledgments
+
+The backend started from [dailycodework/dream-shops](https://github.com/dailycodework/dream-shops). This repository extends that foundation with a React storefront, transactional cart and checkout handling, automated tests, and a two-service Google Cloud deployment.

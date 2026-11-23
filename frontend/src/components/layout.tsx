@@ -4,9 +4,9 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useSession } from '../api/session'
 
 function Brand() {
-  return <Link className="wordmark" to="/" aria-label="DreamShops 首頁">
+  return <Link className="wordmark" to="/" aria-label="Dreamshop 首頁">
     <span className="brand-mark"><ShoppingBag size={18} strokeWidth={2.2} /></span>
-    <span>Dream<span>Shops</span></span>
+    <span>Dream<span>shop</span></span>
   </Link>
 }
 
