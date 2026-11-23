@@ -1,0 +1,93 @@
+
+name: Dreamshop CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: dreamshops_ci
+          POSTGRES_USER: dreamshops_ci
+          POSTGRES_PASSWORD: ci-test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dreamshops_ci -d dreamshops_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: dream-shops
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/dreamshops_ci
+      SPRING_DATASOURCE_USERNAME: dreamshops_ci
+      SPRING_DATASOURCE_PASSWORD: ci-test-password
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: dream-shops/pom.xml
+
+      - name: Generate test JWT secret
+        run: |
+          echo "AUTH_TOKEN_JWTSECRET=$(openssl rand -base64 48 | tr -d '\n')" >> "$GITHUB_ENV"
+
+      - name: Run backend tests
+        run: ./mvnw -B -ntp test
+
+  frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npm run typecheck
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
