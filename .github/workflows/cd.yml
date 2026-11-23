@@ -22,7 +22,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RUNS=$(gh api \
+          RUNS=$(gh api --method GET \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
             -f head_sha="${GITHUB_SHA}" \
             -f branch="main" \
