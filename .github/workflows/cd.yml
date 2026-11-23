@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   id-token: write
 
 jobs:
@@ -16,6 +17,26 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+
+      - name: Verify CI passed for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUNS=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+            -f head_sha="${GITHUB_SHA}" \
+            -f branch="main" \
+            -f event="push" \
+            -f status="success")
+
+          COUNT=$(echo "$RUNS" | jq '.total_count')
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No successful CI run found for this commit."
+            exit 1
+          fi
+
+          echo "CI passed. CD may continue."
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
