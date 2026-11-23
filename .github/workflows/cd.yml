@@ -84,3 +84,14 @@ jobs:
             --image="$IMAGE" \
             --no-traffic \
             --quiet
+
+      - name: Deploy backend without traffic
+        run: |
+          IMAGE="asia-east1-docker.pkg.dev/pinbot-devops/dreamshops-images/dreamshops-backend:${GITHUB_SHA}"
+
+          gcloud run deploy dreamshops-backend \
+            --project=pinbot-devops \
+            --region=asia-east1 \
+            --image="$IMAGE" \
+            --no-traffic \
+            --quiet
