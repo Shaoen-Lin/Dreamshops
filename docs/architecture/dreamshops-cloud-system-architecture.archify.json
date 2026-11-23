@@ -1,0 +1,573 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DreamShops Cloud System Architecture",
+    "subtitle": "Teal: request path  •  Solid gray: deployment and configuration  •  Dashed: platform capability",
+    "output": "docs/architecture/dreamshops-cloud-system-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "visual_preset": "signal-flow",
+    "legend": {
+      "mode": "hidden"
+    },
+    "repository": {
+      "url": "https://github.com/Shaoen-Lin/Dreamshop.git",
+      "revision": "a799fe99f2ce451b15b1567923e97c5d629ae410"
+    }
+  },
+  "layout": {
+    "mode": "auto"
+  },
+  "components": [
+    {
+      "id": "storefront",
+      "type": "frontend",
+      "label": "React Storefront",
+      "sublabel": "Browser",
+      "sources": [
+        {
+          "path": "frontend/package.json",
+          "line": 17,
+          "end_line": 22
+        },
+        {
+          "path": "frontend/src/api/shop.ts",
+          "line": 31,
+          "end_line": 51
+        }
+      ],
+      "explanation": "The browser runs the React storefront, which uses a same-origin REST path and adds a Bearer JWT when a session is present.",
+      "pos": [
+        36,
+        116
+      ],
+      "size": [
+        151,
+        62
+      ]
+    },
+    {
+      "id": "nginx",
+      "type": "frontend",
+      "label": "Nginx",
+      "sublabel": "Static assets & API proxy",
+      "sources": [
+        {
+          "path": "frontend/Dockerfile",
+          "line": 10,
+          "end_line": 14
+        },
+        {
+          "path": "frontend/nginx.conf.template",
+          "line": 15,
+          "end_line": 31
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 77,
+          "end_line": 86
+        }
+      ],
+      "explanation": "Nginx serves the React build and proxies /api/ to its configured HTTPS backend origin in Cloud Run.",
+      "pos": [
+        300,
+        116
+      ],
+      "size": [
+        157,
+        62
+      ]
+    },
+    {
+      "id": "security",
+      "type": "security",
+      "label": "Spring Security",
+      "sublabel": "JWT / RBAC",
+      "sources": [
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/security/config/ShopConfig.java",
+          "line": 73,
+          "end_line": 100
+        },
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/security/jwt/AuthTokenFilter.java",
+          "line": 34,
+          "end_line": 59
+        }
+      ],
+      "explanation": "Protected routes require authentication. Role and ownership checks protect administrative writes and customer records.",
+      "pos": [
+        550,
+        116
+      ],
+      "size": [
+        143,
+        62
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "Spring Boot REST API",
+      "sublabel": "Controller · Service · JPA Repo",
+      "sources": [
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/controller/OrderController.java",
+          "line": 19,
+          "end_line": 36
+        },
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/service/order/OrderService.java",
+          "line": 27,
+          "end_line": 62
+        },
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/repository/OrderRepository.java",
+          "line": 3,
+          "end_line": 12
+        }
+      ],
+      "explanation": "Controllers handle HTTP responses, services own business rules and transaction boundaries, and Spring Data JPA repositories provide persistence.",
+      "pos": [
+        772,
+        116
+      ],
+      "size": [
+        185,
+        62
+      ]
+    },
+    {
+      "id": "sql",
+      "type": "database",
+      "label": "Cloud SQL PostgreSQL",
+      "sublabel": "dreamshops-db · STOPPED",
+      "sources": [
+        {
+          "path": "dream-shops/pom.xml",
+          "line": 62,
+          "end_line": 72
+        },
+        {
+          "path": "dream-shops/src/main/resources/application.properties",
+          "line": 4,
+          "end_line": 9
+        },
+        {
+          "path": "README.md",
+          "line": 150,
+          "end_line": 154
+        }
+      ],
+      "explanation": "The backend Cloud Run template uses the Cloud SQL Java Connector and database dreamshops. Read-only metadata reported PostgreSQL 18 and activation policy NEVER.",
+      "pos": [
+        1061,
+        116
+      ],
+      "size": [
+        179,
+        62
+      ]
+    },
+    {
+      "id": "identity",
+      "type": "security",
+      "label": "IAM Service Account",
+      "sublabel": "Backend runtime identity",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 150,
+          "end_line": 154
+        }
+      ],
+      "explanation": "The backend runs as a dedicated service account for Google Cloud API access. GitHub Actions uses a separate deployment identity.",
+      "pos": [
+        540,
+        248
+      ],
+      "size": [
+        170,
+        62
+      ]
+    },
+    {
+      "id": "secrets",
+      "type": "security",
+      "label": "Secret Manager",
+      "sublabel": "Database password & JWT key",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 150,
+          "end_line": 154
+        },
+        {
+          "path": "dream-shops/src/main/resources/application.properties",
+          "line": 4,
+          "end_line": 9
+        },
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/security/jwt/JwtUtils.java",
+          "line": 23,
+          "end_line": 39
+        }
+      ],
+      "explanation": "Cloud Run provides the backend database password and JWT signing key through Secret Manager references.",
+      "pos": [
+        991,
+        248
+      ],
+      "size": [
+        192,
+        62
+      ]
+    },
+    {
+      "id": "github",
+      "type": "external",
+      "label": "GitHub Repository",
+      "sublabel": "DreamShops source",
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 2,
+          "end_line": 10
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 17,
+          "end_line": 29
+        }
+      ],
+      "explanation": "CI runs for pushes and pull requests targeting main. CD is manually dispatched.",
+      "pos": [
+        36,
+        271
+      ],
+      "size": [
+        168,
+        62
+      ]
+    },
+    {
+      "id": "actions",
+      "type": "backend",
+      "label": "GitHub Actions",
+      "sublabel": "Maven / npm CI · manual CD",
+      "sources": [
+        {
+          "path": ".github/workflows/ci.yml",
+          "line": 54,
+          "end_line": 98
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 4,
+          "end_line": 10
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 21,
+          "end_line": 48
+        }
+      ],
+      "explanation": "The workflow checks successful CI for the commit, exchanges GitHub OIDC credentials via the configured Workload Identity Federation provider, then builds and deploys through the workflow.",
+      "pos": [
+        36,
+        386
+      ],
+      "size": [
+        168,
+        62
+      ]
+    },
+    {
+      "id": "docker",
+      "type": "backend",
+      "label": "Docker",
+      "sublabel": "Multi-stage builds",
+      "sources": [
+        {
+          "path": "frontend/Dockerfile",
+          "line": 1,
+          "end_line": 14
+        },
+        {
+          "path": "dream-shops/Dockerfile",
+          "line": 1,
+          "end_line": 16
+        },
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 65,
+          "end_line": 75
+        }
+      ],
+      "explanation": "The frontend compiles with Node and runs in Nginx. The backend builds a JAR with Maven and runs in a Java 21 JRE.",
+      "pos": [
+        36,
+        501
+      ],
+      "size": [
+        168,
+        62
+      ]
+    },
+    {
+      "id": "cloud-build",
+      "type": "cloud",
+      "label": "Cloud Build",
+      "sublabel": "Historical image builds",
+      "sources": [
+        {
+          "path": "frontend/Dockerfile",
+          "line": 1,
+          "end_line": 14
+        },
+        {
+          "path": "dream-shops/Dockerfile",
+          "line": 1,
+          "end_line": 16
+        }
+      ],
+      "explanation": "Regional Cloud Build history records successful historical frontend v1 and backend v1/v2 image builds. These are separate from GitHub Actions Docker builds.",
+      "pos": [
+        494,
+        363
+      ],
+      "size": [
+        173,
+        62
+      ]
+    },
+    {
+      "id": "registry",
+      "type": "cloud",
+      "label": "Artifact Registry",
+      "sublabel": "dreamshops-images",
+      "sources": [
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 62,
+          "end_line": 75
+        },
+        {
+          "path": "README.md",
+          "line": 150,
+          "end_line": 154
+        }
+      ],
+      "explanation": "The regional Docker repository stores historical version tags and commit-SHA images published by the manually triggered CD workflow.",
+      "pos": [
+        494,
+        501
+      ],
+      "size": [
+        173,
+        62
+      ]
+    },
+    {
+      "id": "revisions",
+      "type": "cloud",
+      "label": "Cloud Run Revisions",
+      "sublabel": "CD creates revisions at 0%",
+      "sources": [
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 77,
+          "end_line": 97
+        },
+        {
+          "path": "README.md",
+          "line": 150,
+          "end_line": 154
+        }
+      ],
+      "explanation": "The verified CD run created frontend and backend revisions without shifting traffic. Existing revisions retained 100% for each service. Cloud Run supports manual traffic migration and rollback.",
+      "pos": [
+        777,
+        501
+      ],
+      "size": [
+        181,
+        62
+      ]
+    },
+    {
+      "id": "telemetry",
+      "type": "cloud",
+      "label": "Cloud Logging / Monitoring",
+      "sublabel": "Built-in logs and metrics",
+      "sources": [
+        {
+          "path": ".github/workflows/cd.yml",
+          "line": 77,
+          "end_line": 97
+        }
+      ],
+      "explanation": "Cloud Run exposes request and container logs and service metrics through Google Cloud. Custom dashboards and alerts were not verified.",
+      "pos": [
+        1053,
+        501
+      ],
+      "size": [
+        198,
+        62
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Google Cloud · pinbot-devops / asia-east1",
+      "wraps": [
+        "nginx",
+        "security",
+        "api",
+        "sql",
+        "identity",
+        "secrets",
+        "cloud-build",
+        "registry",
+        "revisions",
+        "telemetry"
+      ],
+      "pad": 57
+    },
+    {
+      "kind": "region",
+      "label": "Application & Runtime",
+      "wraps": [
+        "nginx",
+        "security",
+        "api",
+        "sql",
+        "identity",
+        "secrets"
+      ],
+      "pad": 36
+    },
+    {
+      "kind": "region",
+      "label": "Cloud Run · Frontend",
+      "wraps": [
+        "nginx"
+      ],
+      "pad": 19
+    },
+    {
+      "kind": "region",
+      "label": "Cloud Run · Backend",
+      "wraps": [
+        "security",
+        "api"
+      ],
+      "pad": 19
+    },
+    {
+      "kind": "region",
+      "label": "Build & Deployment",
+      "wraps": [
+        "github",
+        "actions",
+        "docker"
+      ],
+      "pad": 20
+    },
+    {
+      "kind": "region",
+      "label": "Release & Observability",
+      "wraps": [
+        "revisions",
+        "telemetry"
+      ],
+      "pad": 20
+    }
+  ],
+  "connections": [
+    {
+      "id": "browser-edge",
+      "from": "storefront",
+      "to": "nginx",
+      "label": "HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "proxy-api",
+      "from": "nginx",
+      "to": "security",
+      "label": "/api/v1 · HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "id": "security-api",
+      "from": "security",
+      "to": "api",
+      "label": "If allowed",
+      "variant": "emphasis"
+    },
+    {
+      "id": "api-sql",
+      "from": "api",
+      "to": "sql",
+      "label": "Java Connector",
+      "variant": "emphasis"
+    },
+    {
+      "id": "identity-api",
+      "from": "identity",
+      "to": "api",
+      "label": "Service identity",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "secrets-api",
+      "from": "secrets",
+      "to": "api",
+      "label": "Secret refs",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "source-actions",
+      "from": "github",
+      "to": "actions",
+      "label": "Checkout"
+    },
+    {
+      "id": "actions-docker",
+      "from": "actions",
+      "to": "docker",
+      "label": "CI gate / WIF"
+    },
+    {
+      "id": "docker-registry",
+      "from": "docker",
+      "to": "registry",
+      "label": "Push SHA"
+    },
+    {
+      "id": "cloud-build-registry",
+      "from": "cloud-build",
+      "to": "registry",
+      "label": "Push v1 / v2"
+    },
+    {
+      "id": "registry-revisions",
+      "from": "registry",
+      "to": "revisions",
+      "label": "Deploy image"
+    },
+    {
+      "id": "revisions-telemetry",
+      "from": "revisions",
+      "to": "telemetry",
+      "label": "Platform signals",
+      "variant": "dashed"
+    }
+  ]
+}
