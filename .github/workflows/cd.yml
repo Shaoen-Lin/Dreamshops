@@ -73,3 +73,14 @@ jobs:
           IMAGE="asia-east1-docker.pkg.dev/pinbot-devops/dreamshops-images/dreamshops-frontend:${GITHUB_SHA}"
           docker build --platform linux/amd64 -t "$IMAGE" ./frontend
           docker push "$IMAGE"
+
+      - name: Deploy frontend without traffic
+        run: |
+          IMAGE="asia-east1-docker.pkg.dev/pinbot-devops/dreamshops-images/dreamshops-frontend:${GITHUB_SHA}"
+
+          gcloud run deploy dreamshops-frontend \
+            --project=pinbot-devops \
+            --region=asia-east1 \
+            --image="$IMAGE" \
+            --no-traffic \
+            --quiet
