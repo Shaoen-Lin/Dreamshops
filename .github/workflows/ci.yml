@@ -92,17 +92,17 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-    docker-build:
-      name: Docker Build
-      runs-on: ubuntu-latest
-      needs: [backend, frontend]
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
 
-      steps:
-        - name: Checkout source code
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
 
-        - name: Build backend image
-          run: docker build --platform linux/amd64 -t dreamshop-backend:ci ./dream-shops
+      - name: Build backend image
+        run: docker build --platform linux/amd64 -t dreamshop-backend:ci ./dream-shops
 
-        - name: Build frontend image
-          run: docker build --platform linux/amd64 -t dreamshop-frontend:ci ./frontend
+      - name: Build frontend image
+        run: docker build --platform linux/amd64 -t dreamshop-frontend:ci ./frontend
