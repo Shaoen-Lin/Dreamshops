@@ -25,9 +25,11 @@ PostgreSQL stores users, roles, products, images, carts, and orders. Order items
 
 ## System Architecture
 
-![DreamShops cloud architecture showing the storefront request path, image build and deployment paths, and Cloud Run revision and observability capabilities](docs/architecture/dreamshops-cloud-system-architecture.png)
+![DreamShops cloud architecture showing the storefront request path, image build and deployment paths, and Cloud Run revision and observability capabilities](docs/architecture/dreamshops-cloud-system-architecture-v2.png)
 
-[Editable Archify source](docs/architecture/dreamshops-cloud-system-architecture.archify.json)
+[Editable Archify source](docs/architecture/dreamshops-cloud-system-architecture.archify.json) · [Interactive HTML download](docs/architecture/dreamshops-cloud-system-architecture.html)
+
+The diagram uses `dreamshops-devops` as a presentation label.
 
 1. **Browser to frontend.** Nginx serves the React build on Cloud Run. The browser sends same-origin REST requests to `/api/v1`, which [Nginx](frontend/nginx.conf.template) proxies to the backend over HTTPS using `API_UPSTREAM`.
 2. **Frontend to API.** Spring Security validates JWTs and applies route, role, and ownership checks. Controllers delegate business logic and transactions to services, and Spring Data JPA repositories handle persistence.
