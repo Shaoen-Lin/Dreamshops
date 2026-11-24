@@ -422,7 +422,7 @@
   "boundaries": [
     {
       "kind": "region",
-      "label": "Google Cloud · pinbot-devops / asia-east1",
+      "label": "Google Cloud · dreamshops-devops / asia-east1",
       "wraps": [
         "nginx",
         "security",
