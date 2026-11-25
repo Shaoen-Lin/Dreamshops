@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "DreamShops Cloud System Architecture",
-    "subtitle": "Teal: request path  •  Solid gray: deployment and configuration  •  Dashed: platform capability",
+    "subtitle": "Teal: request path  •  Gray: deployment and configuration  •  Dashed: platform signals or pending deployment",
     "output": "docs/architecture/dreamshops-cloud-system-architecture.html",
     "quality_profile": "showcase",
     "locale": "en",
@@ -13,7 +13,7 @@
     },
     "repository": {
       "url": "https://github.com/Shaoen-Lin/Dreamshop.git",
-      "revision": "a799fe99f2ce451b15b1567923e97c5d629ae410"
+      "revision": "2b416a0b85759f50ddeb8c3de5737a873d66c3cf"
     }
   },
   "layout": {
@@ -65,8 +65,8 @@
         },
         {
           "path": ".github/workflows/cd.yml",
-          "line": 77,
-          "end_line": 86
+          "line": 86,
+          "end_line": 95
         }
       ],
       "explanation": "Nginx serves the React build and proxies /api/ to its configured HTTPS backend origin in Cloud Run.",
@@ -155,18 +155,51 @@
           "end_line": 9
         },
         {
-          "path": "README.md",
-          "line": 150,
-          "end_line": 154
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/model/Image.java",
+          "line": 25,
+          "end_line": 40
         }
       ],
-      "explanation": "The backend Cloud Run template uses the Cloud SQL Java Connector and database dreamshops. Read-only metadata reported PostgreSQL 18 and activation policy NEVER.",
+      "explanation": "The backend Cloud Run template uses the Cloud SQL Java Connector and database dreamshops. Read-only metadata reported PostgreSQL 18 and activation policy NEVER. PostgreSQL stores the product image metadata and keeps the legacy BLOB column for backwards-compatible reads.",
       "pos": [
         1061,
         116
       ],
       "size": [
         179,
+        62
+      ]
+    },
+    {
+      "id": "gcs",
+      "type": "cloud",
+      "label": "Google Cloud Storage (GCS)",
+      "sublabel": "Private Product Image Bucket",
+      "tag": "Pending deployment",
+      "sources": [
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/service/image/GcsImageObjectStore.java",
+          "line": 24,
+          "end_line": 55
+        },
+        {
+          "path": "dream-shops/src/main/java/com/Shawn/dream_shops/service/image/ImageStorageConfiguration.java",
+          "line": 14,
+          "end_line": 21
+        },
+        {
+          "path": "docs/product-image-storage.md",
+          "line": 5,
+          "end_line": 28
+        }
+      ],
+      "explanation": "The backend implementation uses the official GCS Java client with Application Default Credentials. Bucket creation, bucket-level IAM, a zero-traffic deployment and cloud smoke tests are pending approval.",
+      "pos": [
+        1094,
+        248
+      ],
+      "size": [
+        210,
         62
       ]
     },
@@ -216,7 +249,7 @@
       ],
       "explanation": "Cloud Run provides the backend database password and JWT signing key through Secret Manager references.",
       "pos": [
-        991,
+        828,
         248
       ],
       "size": [
@@ -237,8 +270,8 @@
         },
         {
           "path": ".github/workflows/cd.yml",
-          "line": 17,
-          "end_line": 29
+          "line": 19,
+          "end_line": 31
         }
       ],
       "explanation": "CI runs for pushes and pull requests targeting main. CD is manually dispatched.",
@@ -269,11 +302,11 @@
         },
         {
           "path": ".github/workflows/cd.yml",
-          "line": 21,
-          "end_line": 48
+          "line": 23,
+          "end_line": 57
         }
       ],
-      "explanation": "The workflow checks successful CI for the commit, exchanges GitHub OIDC credentials via the configured Workload Identity Federation provider, then builds and deploys through the workflow.",
+      "explanation": "The workflow checks successful CI for the commit, exchanges GitHub OIDC credentials via the configured Workload Identity Federation provider, then builds and deploys through the workflow. A manually dispatched run requires the configured product image bucket before staging Cloud Run revisions.",
       "pos": [
         36,
         386
@@ -301,8 +334,8 @@
         },
         {
           "path": ".github/workflows/cd.yml",
-          "line": 65,
-          "end_line": 75
+          "line": 74,
+          "end_line": 84
         }
       ],
       "explanation": "The frontend compiles with Node and runs in Nginx. The backend builds a JAR with Maven and runs in a Java 21 JRE.",
@@ -350,8 +383,8 @@
       "sources": [
         {
           "path": ".github/workflows/cd.yml",
-          "line": 62,
-          "end_line": 75
+          "line": 71,
+          "end_line": 84
         },
         {
           "path": "README.md",
@@ -377,8 +410,8 @@
       "sources": [
         {
           "path": ".github/workflows/cd.yml",
-          "line": 77,
-          "end_line": 97
+          "line": 86,
+          "end_line": 107
         },
         {
           "path": "README.md",
@@ -404,8 +437,8 @@
       "sources": [
         {
           "path": ".github/workflows/cd.yml",
-          "line": 77,
-          "end_line": 97
+          "line": 86,
+          "end_line": 107
         }
       ],
       "explanation": "Cloud Run exposes request and container logs and service metrics through Google Cloud. Custom dashboards and alerts were not verified.",
@@ -433,7 +466,8 @@
         "cloud-build",
         "registry",
         "revisions",
-        "telemetry"
+        "telemetry",
+        "gcs"
       ],
       "pad": 57
     },
@@ -446,7 +480,8 @@
         "api",
         "sql",
         "identity",
-        "secrets"
+        "secrets",
+        "gcs"
       ],
       "pad": 36
     },
@@ -513,8 +548,17 @@
       "id": "api-sql",
       "from": "api",
       "to": "sql",
-      "label": "Java Connector",
+      "label": "JPA / Metadata",
       "variant": "emphasis"
+    },
+    {
+      "id": "api-gcs",
+      "from": "api",
+      "to": "gcs",
+      "label": "GCS Java Client / IAM",
+      "variant": "dashed",
+      "fromSide": "right",
+      "toSide": "left"
     },
     {
       "id": "identity-api",
