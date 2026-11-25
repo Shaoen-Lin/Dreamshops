@@ -1,11 +1,17 @@
 package com.Shawn.dream_shops;
 
 import com.Shawn.dream_shops.model.Product;
+import com.Shawn.dream_shops.model.Image;
+import com.Shawn.dream_shops.model.Role;
 import com.Shawn.dream_shops.model.User;
+import com.Shawn.dream_shops.repository.ImageObjectCleanupRepository;
+import com.Shawn.dream_shops.repository.ImageRepository;
 import com.Shawn.dream_shops.repository.ProductRepository;
+import com.Shawn.dream_shops.repository.RoleRepository;
 import com.Shawn.dream_shops.repository.UserRepository;
 import com.Shawn.dream_shops.service.cart.ICartItemService;
 import com.Shawn.dream_shops.service.order.IOrderService;
+import com.Shawn.dream_shops.service.image.ImageObjectJanitor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +19,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.ImageIO;
+import javax.sql.rowset.serial.SerialBlob;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "shop.images.cleanup-delay-ms=3600000")
 @AutoConfigureMockMvc
 class ShopIntegrationTests {
 
@@ -42,6 +53,10 @@ class ShopIntegrationTests {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ICartItemService cartItems;
     @Autowired private IOrderService orders;
+    @Autowired private ImageRepository images;
+    @Autowired private ImageObjectCleanupRepository imageRemovals;
+    @Autowired private ImageObjectJanitor imageJanitor;
+    @Autowired private RoleRepository roles;
 
     @Test
     void protectsCustomerRecordsAndCatalogWrites() throws Exception {
@@ -71,6 +86,70 @@ class ShopIntegrationTests {
                 .andExpect(status().isForbidden());
         mvc.perform(multipart("/api/v1/images/upload").header("Authorization", ownerToken))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void adminImageWritesPreservePublicDownloadsAndQueueProductCleanup() throws Exception {
+        Account admin = account();
+        User account = users.findById(admin.id()).orElseThrow();
+        account.setRoles(List.of(roles.findByName("ROLE_ADMIN").orElseGet(() -> roles.save(new Role("ROLE_ADMIN")))));
+        users.save(account);
+        String adminToken = login(admin);
+        Product product = product(1);
+        var buffer = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", buffer);
+        byte[] bytes = buffer.toByteArray();
+        String response = mvc.perform(multipart("/api/v1/images/upload")
+                        .file(new MockMultipartFile("files", "image.png", "image/png", bytes))
+                        .param("productID", product.getId().toString()).header("Authorization", adminToken))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var dto = json.readTree(response).path("data").get(0);
+        long id = dto.path("imageID").asLong();
+        String downloadUrl = dto.path("downloadURL").asText();
+        var original = images.findById(id).orElseThrow();
+        assertThat(original.getImage()).isNull();
+        assertThat(original.getByteSize()).isEqualTo((long) bytes.length);
+        mvc.perform(get(downloadUrl)).andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_PNG)).andExpect(content().bytes(bytes));
+        String customerToken = login(account());
+        mvc.perform(delete("/api/v1/images/image/{id}/update", id).header("Authorization", customerToken))
+                .andExpect(status().isForbidden());
+        mvc.perform(multipart("/api/v1/images/image/{id}/update", id)
+                        .file(new MockMultipartFile("file", "updated.png", "image/png", bytes))
+                        .header("Authorization", adminToken))
+                .andExpect(status().isOk());
+        String replacement = images.findById(id).orElseThrow().getObjectKey();
+        assertThat(replacement).isNotEqualTo(original.getObjectKey());
+        assertThat(imageRemovals.existsById(original.getObjectKey())).isTrue();
+        mvc.perform(delete("/api/v1/images/image/{id}/update", id).header("Authorization", adminToken))
+                .andExpect(status().isOk());
+        assertThat(imageRemovals.existsById(replacement)).isTrue();
+        mvc.perform(get(downloadUrl)).andExpect(status().isNotFound());
+
+        mvc.perform(multipart("/api/v1/images/upload")
+                        .file(new MockMultipartFile("files", "second.png", "image/png", bytes))
+                        .param("productID", product.getId().toString()).header("Authorization", adminToken))
+                .andExpect(status().isOk());
+        String cascadeKey = images.findByProductId(product.getId()).getFirst().getObjectKey();
+        mvc.perform(delete("/api/v1/products/product/{productId}/delete", product.getId())
+                        .header("Authorization", adminToken))
+                .andExpect(status().isOk());
+        assertThat(imageRemovals.existsById(cascadeKey)).isTrue();
+        imageJanitor.processRemovals();
+        assertThat(imageRemovals.existsById(cascadeKey)).isFalse();
+    }
+
+    @Test
+    void readsExistingPostgresBlobThroughSamePublicRoute() throws Exception {
+        byte[] bytes = {1, 2, 3};
+        Image image = new Image();
+        image.setProduct(product(1));
+        image.setFileType("image/jpeg");
+        image.setFileName("legacy.jpg");
+        image.setImage(new SerialBlob(bytes));
+        long id = images.save(image).getId();
+        mvc.perform(get("/api/v1/images/image/download/{id}", id))
+                .andExpect(status().isOk()).andExpect(content().bytes(bytes));
     }
 
     @Test

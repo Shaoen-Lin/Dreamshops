@@ -25,6 +25,12 @@ public class Image {
     @JsonIgnore
     @Lob
     private Blob image;
+    @JsonIgnore
+    private String objectKey;
+    @JsonIgnore
+    private String objectStore;
+    @JsonIgnore
+    private Long byteSize;
     // Blob (Binary Large Object) 表示大型二進制資料的資料類型。 它通常用來儲存圖片、音訊、影片等非結構化資料
     private String downloadUrl;
 

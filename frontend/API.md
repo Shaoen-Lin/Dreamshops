@@ -46,10 +46,10 @@
 | `POST /categories/add` | JSON `{name}` | Category | `ROLE_ADMIN` | 409 重複分類 | |
 | `PUT /categories/category/{id}/update` | JSON `{name}` | Category | `ROLE_ADMIN` | 404 | |
 | `DELETE /categories/category/{id}/delete` | 路徑分類 ID | `null` | `ROLE_ADMIN` | 404 | |
-| `GET /images/image/download/{imageID}` | 路徑圖片 ID | 原始二進位內容，使用圖片的 Content-Type | 公開 | 404、500 | ✓ |
-| `POST /images/upload` | multipart `files`（可多檔）、`productID` | ImageDto[] | `ROLE_ADMIN` | 500 上傳處理失敗 | |
-| `POST /images/image/{imageID}/update` | multipart `file` | `null` | `ROLE_ADMIN` | 404、500 | |
-| `DELETE /images/image/{imageID}/update` | 路徑圖片 ID | `null` | `ROLE_ADMIN` | 404、500 | |
+| `GET /images/image/download/{imageID}` | 路徑圖片 ID | 原始二進位內容，使用圖片的 Content-Type | 公開 | 404、503 | ✓ |
+| `POST /images/upload` | multipart `files`（可多檔）、`productID` | ImageDto[] | `ROLE_ADMIN` | 400、404、413、415、503 | |
+| `POST /images/image/{imageID}/update` | multipart `file` | `null` | `ROLE_ADMIN` | 400、404、413、415、503 | |
+| `DELETE /images/image/{imageID}/update` | 路徑圖片 ID | `null` | `ROLE_ADMIN` | 404 | |
 
 上傳的單檔與請求大小上限均為 5 MB。下載路由使用 `Content-Disposition: attachment`。安全清單內的點陣圖片維持原 MIME，其他格式以二進位附件下載。
 
@@ -96,7 +96,7 @@ ID、數量與 BigDecimal 金額序列化為 JSON 數字。訂單日期使用無
 | `UserController`、`CartController`、`CartItemController`、`OrderController` | 已登入使用者限操作自己的資料。新增購物車商品取用登入身分，數量需為正數。原 HTTP 路徑、參數及成功 envelope 維持一致。 |
 | `CartRepository`、`UserRepository`、`CartService`、`ICartService`、`CartItemService`、`ICartItemService`、`Cart` | 購物車擁有權查詢、交易鎖、首次建立與購物車項目變更使用同一交易。讀取購物車取消多餘寫入，數量與總額依目前品項更新。 |
 | `OrderRepository`、`ProductRepository`、`OrderService`、`IOrderService` | 依擁有者查找訂單。結帳於同一交易鎖定購物車、按產品 ID 順序執行條件式庫存扣減、建立訂單並清空購物車。任一商品缺貨時整筆回滾。訂單 DTO 明確填入 ID、狀態和明細。 |
-| `ProductService`、`ImageService`、`ImageController` | 對應圖片 ID、檔名及 URL，批次上傳以單一交易保存，下載 URL 使用 API 前綴。下載回應隔離，限制可渲染的 MIME。 |
+| `ProductService`、`ImageService`、`ImageController` | PostgreSQL 保存圖片 ID、檔名、類型、大小及物件位置，API 代為讀取私有物件。舊圖片仍可透過原 URL 從 BLOB 讀取。批次上傳的中繼資料在同一筆資料庫交易提交。 |
 | `User`、`Image` | 購物車實體回應排除密碼雜湊與圖片原始 BLOB。 |
 | `GlobalExceptionHandler` | 遺失商品與圖片回傳 404。 |
 | `ShopIntegrationTests` | 用 PostgreSQL 驗證使用者隔離、管理員權限、舊 JWT、併發新增與結帳、庫存回滾。 |

@@ -13,6 +13,8 @@ jobs:
   verify-gcp:
     name: Verify GCP Authentication
     runs-on: ubuntu-latest
+    env:
+      SHOP_IMAGES_BUCKET: ${{ vars.SHOP_IMAGES_BUCKET }}
 
     steps:
       - name: Checkout source code
@@ -37,6 +39,13 @@ jobs:
           fi
 
           echo "CI passed. CD may continue."
+
+      - name: Require the configured product image bucket
+        run: |
+          if [[ ! "$SHOP_IMAGES_BUCKET" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ ]]; then
+            echo "Set the SHOP_IMAGES_BUCKET repository variable to the approved bucket name."
+            exit 1
+          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -93,5 +102,6 @@ jobs:
             --project=pinbot-devops \
             --region=asia-east1 \
             --image="$IMAGE" \
+            --update-env-vars="SHOP_IMAGES_BUCKET=$SHOP_IMAGES_BUCKET" \
             --no-traffic \
             --quiet

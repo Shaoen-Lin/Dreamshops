@@ -1,4 +1,5 @@
 target/
+.local/
 .git/
 .idea/
 *.log

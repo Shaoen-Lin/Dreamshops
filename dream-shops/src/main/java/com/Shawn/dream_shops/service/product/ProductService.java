@@ -12,10 +12,12 @@ import com.Shawn.dream_shops.repository.ImageRepository;
 import com.Shawn.dream_shops.request.AddProductRequest;
 import com.Shawn.dream_shops.repository.ProductRepository;
 import com.Shawn.dream_shops.request.ProductUpdateRequest;
+import com.Shawn.dream_shops.service.image.ImageObjectJanitor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,6 +32,8 @@ public class ProductService implements IProductService{
     private CategoryRepository cateRepo;
     @Autowired
     private ImageRepository imageRepo;
+    @Autowired
+    private ImageObjectJanitor imageObjectJanitor;
     @Autowired
     private ModelMapper modelMapper;
 
@@ -91,19 +95,21 @@ public class ProductService implements IProductService{
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Override
+    @Transactional
     public void deleteProductById(Long id) {
-        prodRepo.findById(id)
-                .ifPresentOrElse(prodRepo::delete,
-                        () -> {throw new ProductNotFoundException("Product Not Found！");});
-        // 如果存在，則呼叫 repo::id = repo.delete(id)
+        Product product = prodRepo.findByIdForUpdate(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found"));
+        imageRepo.findProductImagesForUpdate(id).forEach(imageObjectJanitor::queueRemoval);
+        prodRepo.delete(product);
     }
 
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Override
+    @Transactional
     public Product updateProduct(ProductUpdateRequest request, Long productId)
     {
         return prodRepo
-                .findById(productId) //回傳的是 Optional<Product>，可能會有值 (找到產品) 或空的 (找不到)。
+                .findByIdForUpdate(productId)
                 .map(existingProduct -> updateExistingProduct(existingProduct, request))
                 // 對於所有existingProduct(這個名子可以隨便訂)，如果找到 Product，就用 map() 做轉換。
                 .map(product -> prodRepo.save(product))
