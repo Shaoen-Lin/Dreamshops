@@ -1,8 +1,8 @@
 # DreamShops
 
-DreamShops is a full-stack e-commerce application with a React storefront, a Spring Boot REST API, and PostgreSQL. The storefront and API were deployed as separate Cloud Run services in Google Cloud project `pinbot-devops`, region `asia-east1`.
+DreamShops is a full-stack e-commerce application with a React storefront, a Spring Boot REST API, and PostgreSQL. The storefront and API were deployed as separate Cloud Run services in Google Cloud project `dreamshops-devops`, region `asia-east1`.
 
-**Deployment status (November 25, 2026).** The existing Cloud Run deployment uses project `pinbot-devops` in `asia-east1`. Read-only checks found Cloud SQL `STOPPED` with activation policy `NEVER` and no dedicated product-image bucket. The GCS integration is implemented in this repository. Bucket provisioning, IAM changes, a zero-traffic deployment, and cloud smoke tests are pending approval. Existing production image rows could not be inspected while Cloud SQL was stopped.
+**Deployment status (November 25, 2026).** The existing Cloud Run deployment uses project `dreamshops-devops` in `asia-east1`. Read-only checks found Cloud SQL `STOPPED` with activation policy `NEVER` and no dedicated product-image bucket. The GCS integration is implemented in this repository. Bucket provisioning, IAM changes, a zero-traffic deployment, and cloud smoke tests are pending approval. Existing production image rows could not be inspected while Cloud SQL was stopped.
 
 ## Project Overview
 
